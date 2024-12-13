@@ -4,8 +4,47 @@ Transform: AWS::Serverless-2016-10-31
 Globals:
   Function:
     Timeout: 5
+  Api:
+    EndpointConfiguration: REGIONAL
+    SecurityHeaders:
+      ContentSecurityPolicy: "default-src 'self'"
+      StrictTransportSecurity: "max-age=31536000; includeSubdomains"
+      XContentTypeOptions: nosniff
+      XFrameOptions: DENY
+      ReferrerPolicy: strict-origin-when-cross-origin
+    AccessLogSetting:
+      DestinationArn: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/apigateway/SubmitImageAPI"
+      Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","caller":"$context.identity.caller","user":"$context.identity.user","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength"}'
 
 Resources:
+  SubmitImageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  SubmitImageTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
   SubmitImageFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -16,15 +55,35 @@ Resources:
       Runtime: provided.al2
       Tracing: Active
       Policies:
-        - AmazonDynamoDBFullAccess
-        - AmazonS3FullAccess
-        - AdministratorAccess
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt SubmitImageTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub "${SubmitImageBucket.Arn}/*"
+            - Effect: Allow
+              Action:
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
+              Resource: "*"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref SubmitImageBucket
+          TABLE_NAME: !Ref SubmitImageTable
       Events:
         CatchAll:
           Type: Api
           Properties:
             Path: /bootstrap
             Method: GET
+            Auth: AWS_IAM
       Tags:
         Name: submitImage
         business_unit: agile_devops_pmm
