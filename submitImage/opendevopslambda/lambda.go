@@ -12,30 +12,88 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
+	"time"
 )
 
 type Dependency struct {
 	DepS3 s3iface.S3API
 	DepDynamoDB dynamodbiface.DynamoDBAPI
+	RedisClient *redis.Client
+}
+
+// Initialize Redis client
+func NewDependency(s3Client s3iface.S3API, dynamoClient dynamodbiface.DynamoDBAPI) *Dependency {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     getEnv("REDIS_ADDR", "localhost:6379"),
+		Password: getEnv("REDIS_PASSWORD", ""),
+		DB:       0,
+		PoolSize: 1000, // Support high concurrency
+	})
+
+	return &Dependency{
+		DepS3:       s3Client,
+		DepDynamoDB: dynamoClient,
+		RedisClient: redisClient,
+	}
+}
+
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.Getenv(key); exists {
+		return value
+	}
+	return defaultValue
 }
 
 var bucketRootName = "open-devops-images"
 
 func (d *Dependency) processRequest(imageUrl string, region string, aws_account_id string) (string, error) {
-	response, err := http.Get(imageUrl)
+	// Check cache first
+	cacheKey := fmt.Sprintf("image:%s", imageUrl)
+	if cachedID, err := d.RedisClient.Get(context.Background(), cacheKey).Result(); err == nil {
+		return cachedID, nil
+	}
+
+	// Create HTTP client with timeout and connection pooling
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+
+	// Implement retry with exponential backoff
+	var response *http.Response
+	var err error
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		response, err = client.Get(imageUrl)
+		if err == nil && response.StatusCode == 200 {
+			break
+		}
+		if err != nil {
+			time.Sleep(time.Duration(math.Pow(2, float64(i))) * time.Second)
+			continue
+		}
+		if response.StatusCode != 200 {
+			err = fmt.Errorf("response.StatusCode %d != 200", response.StatusCode)
+			time.Sleep(time.Duration(math.Pow(2, float64(i))) * time.Second)
+			continue
+		}
+	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed after %d retries: %v", maxRetries, err)
 	}
 	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		return "", errors.New(fmt.Sprintf("response.StatusCode %d != 200\n", response.StatusCode))
-	}
 
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -72,9 +130,29 @@ func (d *Dependency) processRequest(imageUrl string, region string, aws_account_
 		TableName: aws.String("ImageLabels"),
 	}
 
-	_, dynamoErr := d.DepDynamoDB.PutItem(dynamoInput)
+	// Implement DynamoDB retry with exponential backoff
+	var dynamoErr error
+	maxDynamoRetries := 3
+	for i := 0; i < maxDynamoRetries; i++ {
+		_, dynamoErr = d.DepDynamoDB.PutItem(dynamoInput)
+		if dynamoErr == nil {
+			break
+		}
+		if i < maxDynamoRetries-1 {
+			time.Sleep(time.Duration(math.Pow(2, float64(i))) * time.Second)
+		}
+	}
 	if dynamoErr != nil {
-		return "", dynamoErr
+		return "", fmt.Errorf("DynamoDB operation failed after %d retries: %v", maxDynamoRetries, dynamoErr)
+	}
+
+	// Cache the result
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("image:%s", imageUrl)
+	err = d.RedisClient.Set(ctx, cacheKey, imageUuid.String(), 24*time.Hour).Err()
+	if err != nil {
+		// Log cache error but don't fail the request
+		fmt.Printf("Failed to cache result: %v\n", err)
 	}
 
 	return imageUuid.String(), nil
