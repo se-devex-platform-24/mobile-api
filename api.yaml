@@ -9,14 +9,14 @@ servers:
 paths:
   /pets:
     get:
-      summary: List all pets
+      summary: List all pets 
       operationId: listAllPets
       tags:
         - pets
       parameters:
         - name: limit
           in: query
-          description: How many items to return at one time (max 100)
+          description: How many items to return at one time (max 100)?
           required: false
           schema:
             type: integer
