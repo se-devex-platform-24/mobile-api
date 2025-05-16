@@ -31,6 +31,63 @@ func (d mockedPutItem) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemO
 }
 
 func TestHandler(t *testing.T) {
+	t.Run("Load Test - Concurrent Requests", func(t *testing.T) {
+		mpo := mockedPutOjbect{
+			Response: s3.PutObjectOutput{},
+		}
+
+		mpi := mockedPutItem{
+			Response: dynamodb.PutItemOutput{},
+		}
+
+		d := Dependency{
+			DepS3:       mpo,
+			DepDynamoDB: mpi,
+		}
+
+		ctx := context.Background()
+		lc := new(lambdacontext.LambdaContext)
+		lc.InvokedFunctionArn = "arn:aws:lambda:region:123456789000:function:functionName"
+		ctx = lambdacontext.NewContext(ctx, lc)
+
+		// Test concurrent requests
+		concurrentRequests := 100
+		errChan := make(chan error, concurrentRequests)
+		var wg sync.WaitGroup
+
+		for i := 0; i < concurrentRequests; i++ {
+			wg.Add(1)
+			go func(reqNum int) {
+				defer wg.Done()
+				qsp := map[string]string{
+					"url": fmt.Sprintf("https://example.com/image%d.jpg", reqNum),
+				}
+
+				request := events.APIGatewayProxyRequest{
+					QueryStringParameters: qsp,
+				}
+
+				_, err := d.Handler(ctx, request)
+				if err != nil {
+					errChan <- fmt.Errorf("request %d failed: %v", reqNum, err)
+				}
+			}(i)
+		}
+
+		wg.Wait()
+		close(errChan)
+
+		// Check for any errors during concurrent execution
+		var errors []error
+		for err := range errChan {
+			errors = append(errors, err)
+		}
+
+		if len(errors) > 0 {
+			t.Errorf("Load test failed with %d errors: %v", len(errors), errors)
+		}
+	})
+
 	t.Run("Successful Request", func(t *testing.T) {
 		mpo := mockedPutOjbect {
 			Response: s3.PutObjectOutput{},
