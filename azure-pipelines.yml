@@ -15,7 +15,7 @@ variables:
   webAppName: 'mobile-api'
 
   # Environment name
-  environmentName: ''
+  environmentName: 'mobile-api-on-azure'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
@@ -75,4 +75,5 @@ stages:
               appName: $(webAppName)
               runtimeStack: 'NODE|20LTS'
               package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
+
               startUpCommand: 'npm run start'
