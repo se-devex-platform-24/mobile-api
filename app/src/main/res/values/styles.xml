@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <!-- Base application theme -->
+    <style name="AppTheme" parent="Theme.Material3.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="colorPrimaryVariant">@color/primary_variant</item>
+        <item name="colorSecondary">@color/secondary_color</item>
+        <item name="colorSecondaryVariant">@color/secondary_variant</item>
+        <item name="android:colorBackground">@color/background_color</item>
+        <item name="colorSurface">@color/surface_color</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        <item name="colorOnBackground">@color/primary_text_color</item>
+        <item name="colorOnSurface">@color/primary_text_color</item>
+    </style>
+    
+    <!-- Version Upgrade Notes specific styles -->
+    <style name="UpgradeNotesTheme" parent="AppTheme">
+        <item name="android:windowBackground">@color/background_color</item>
+        <item name="android:statusBarColor">@color/primary_color</item>
+    </style>
+    
+    <!-- Text Appearance Styles -->
+    <style name="TextAppearance.UpgradeNotes.Header" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">@color/primary_text_color</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <style name="TextAppearance.UpgradeNotes.Title" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/secondary_text_color</item>
+    </style>
+    
+    <style name="TextAppearance.UpgradeNotes.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/secondary_text_color</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+    
+    <style name="TextAppearance.UpgradeNotes.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textColor">@color/tertiary_text_color</item>
+    </style>
+    
+    <!-- Button Styles -->
+    <style name="Button.UpgradeNotes.Primary" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">@color/primary_button_color</item>
+        <item name="android:textColor">@color/primary_button_text_color</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingEnd">24dp</item>
+    </style>
+    
+    <style name="Button.UpgradeNotes.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textColor">@color/secondary_button_text_color</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingEnd">24dp</item>
+        <item name="strokeColor">@color/primary_color</item>
+    </style>
+    
+    <!-- Card Styles -->
+    <style name="Card.UpgradeNotes" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">8dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface_color</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+    
+    <!-- RecyclerView Item Styles -->
+    <style name="UpgradeNotesItem">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+    </style>
+    
+    <style name="UpgradeNotesItem.Header">
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+    
+    <!-- Icon Styles -->
+    <style name="Icon.UpgradeNotes">
+        <item name="android:layout_width">16dp</item>
+        <item name="android:layout_height">16dp</item>
+        <item name="android:layout_marginEnd">12dp</item>
+    </style>
+    
+    <!-- Divider Styles -->
+    <style name="Divider.UpgradeNotes">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@color/divider_color</item>
+        <item name="android:layout_marginTop">16dp</item>
+        <item name="android:layout_marginBottom">16dp</item>
+    </style>
+    
+</resources>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">My App</string>
+    
+    <!-- Version Upgrade Notes Strings -->
+    <string name="upgrade_available_header">Update Available</string>
+    <string name="version_upgrade_title">Version %1$s</string>
+    <string name="release_date_format">Released: %1$s</string>
+    <string name="whats_new_header">What\'s New</string>
+    <string name="additional_notes_header">Additional Notes</string>
+    
+    <!-- Change Categories -->
+    <string name="key_changes_header">🌟 Key Changes</string>
+    <string name="improvements_header">⚡ Improvements</string>
+    <string name="bug_fixes_header">🐛 Bug Fixes</string>
+    <string name="breaking_changes_header">⚠️ Breaking Changes</string>
+    
+    <!-- Action Buttons -->
+    <string name="proceed_upgrade">Update Now</string>
+    <string name="proceed_with_caution">Update (Review Changes)</string>
+    <string name="cancel_upgrade">Not Now</string>
+    
+    <!-- Content Descriptions -->
+    <string name="app_icon_description">App icon</string>
+    <string name="change_icon_description">Change type icon</string>
+    
+    <!-- Sample Content for Testing -->
+    <string name="sample_key_change_1">New dark mode theme with improved readability</string>
+    <string name="sample_key_change_2">Enhanced security with biometric authentication</string>
+    <string name="sample_key_change_3">Redesigned user interface for better navigation</string>
+    
+    <string name="sample_improvement_1">Improved app performance and reduced loading times by 30%</string>
+    <string name="sample_improvement_2">Enhanced offline functionality for core features</string>
+    <string name="sample_improvement_3">Better accessibility support for screen readers</string>
+    
+    <string name="sample_bug_fix_1">Fixed crash when uploading large images</string>
+    <string name="sample_bug_fix_2">Resolved sync issues with cloud storage</string>
+    <string name="sample_bug_fix_3">Fixed notification display problems on Android 12+</string>
+    
+    <string name="sample_breaking_change_1">Minimum Android version requirement increased to 8.0</string>
+    <string name="sample_breaking_change_2">Legacy API endpoints have been deprecated</string>
+    
+    <string name="sample_additional_notes">This update includes important security improvements. We recommend updating as soon as possible. Some features may require additional permissions on first use.</string>
+    
+    <!-- Error Messages -->
+    <string name="error_loading_upgrade_notes">Unable to load upgrade notes. Please try again.</string>
+    <string name="error_network_unavailable">Network connection required to check for updates.</string>
+    
+    <!-- Accessibility -->
+    <string name="upgrade_notes_screen_title">Version Upgrade Notes</string>
+    <string name="changes_list_description">List of changes in this version</string>
+    
+    <!-- Dialog Messages -->
+    <string name="confirm_upgrade_title">Confirm Update</string>
+    <string name="confirm_upgrade_message">Are you sure you want to proceed with the update?</string>
+    <string name="confirm_upgrade_positive">Yes, Update</string>
+    <string name="confirm_upgrade_negative">Cancel</string>
+    
+    <!-- Progress Messages -->
+    <string name="downloading_update">Downloading update…</string>
+    <string name="installing_update">Installing update…</string>
+    <string name="update_complete">Update completed successfully!</string>
+    
+    <!-- Version Information -->
+    <string name="current_version">Current Version: %1$s</string>
+    <string name="new_version">New Version: %1$s</string>
+    <string name="update_size">Update Size: %1$s</string>
+    
+</resources>
