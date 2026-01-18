@@ -1,48 +1,279 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
+Description: >
+  MFIRST Mobile User Registration API
+
+  SAM Template for mobile user registration system with image processing
+
+Parameters:
+  Environment:
+    Type: String
+    Default: development
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
 
 Globals:
   Function:
-    Timeout: 5
+    Timeout: 30
+    MemorySize: 512
+    Runtime: go1.19
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
 
 Resources:
-  SubmitImageFunction:
+  # Lambda Function
+  MobileUserRegistrationFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: go1.x
     Properties:
       CodeUri: submitImage/
-      Handler: bootstrap
-      Runtime: provided.al2
-      Tracing: Active
-      Policies:
-        - AmazonDynamoDBFullAccess
-        - AmazonS3FullAccess
-        - AdministratorAccess
+      Handler: main
+      Description: Mobile user registration and image processing API
       Events:
-        CatchAll:
+        AuthRegister:
           Type: Api
           Properties:
-            Path: /bootstrap
+            Path: /auth/register
+            Method: POST
+        AuthVerifyEmail:
+          Type: Api
+          Properties:
+            Path: /auth/verify-email
+            Method: POST
+        AuthForgotPassword:
+          Type: Api
+          Properties:
+            Path: /auth/forgot-password
+            Method: POST
+        AuthResetPassword:
+          Type: Api
+          Properties:
+            Path: /auth/reset-password
+            Method: POST
+        UserProfile:
+          Type: Api
+          Properties:
+            Path: /user/profile
             Method: GET
+        UserProfileUpdate:
+          Type: Api
+          Properties:
+            Path: /user/profile
+            Method: PUT
+        SubmitImage:
+          Type: Api
+          Properties:
+            Path: /submit-image
+            Method: POST
+        CorsOptions:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: OPTIONS
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          ACTIVITY_LOGS_TABLE: !Ref ActivityLogsTable
+          IMAGES_BUCKET: !Ref ImagesBucket
+          SMTP_HOST: !Sub "{{resolve:ssm:/mfirst/${Environment}/smtp-host}}"
+          SMTP_USERNAME: !Sub "{{resolve:ssm:/mfirst/${Environment}/smtp-username}}"
+          SMTP_PASSWORD: !Sub "{{resolve:ssm-secure:/mfirst/${Environment}/smtp-password}}"
+          SMTP_FROM: !Sub "{{resolve:ssm:/mfirst/${Environment}/smtp-from}}"
+          RECAPTCHA_SECRET_KEY: !Sub "{{resolve:ssm-secure:/mfirst/${Environment}/recaptcha-secret}}"
+          RECAPTCHA_SITE_KEY: !Sub "{{resolve:ssm:/mfirst/${Environment}/recaptcha-site-key}}"
+          CAPTCHA_ENABLED: !Sub "{{resolve:ssm:/mfirst/${Environment}/captcha-enabled}}"
+          JWT_SECRET: !Sub "{{resolve:ssm-secure:/mfirst/${Environment}/jwt-secret}}"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ActivityLogsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ImageLabelsTable
+        - S3CrudPolicy:
+            BucketName: !Ref ImagesBucket
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/mfirst/${Environment}/*"
+
+  # DynamoDB Tables
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "Users-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       Tags:
-        Name: submitImage
-        business_unit: agile_devops_pmm
-        service_name: open_devops_image_rec
-        resource_owner: wmarusiak
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: MFIRST
+
+  ActivityLogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "ActivityLogs-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-timestamp-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: type-timestamp-index
+          KeySchema:
+            - AttributeName: type
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: MFIRST
+
+  ImageLabelsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "ImageLabels-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: Id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Id
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: MFIRST
+
+  # S3 Bucket for Images
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "mfirst-images-${Environment}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: MFIRST
+
+  # CloudWatch Log Group
+  MobileUserRegistrationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${MobileUserRegistrationFunction}"
+      RetentionInDays: 14
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, "production"]
 
 Outputs:
-  SubmitImageAPI:
-    Description: "API Gateway endpoint URL for Prod environment for Submit Image Function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/bootstrap"
-  SubmitImageFunction:
-    Description: "First Lambda Function ARN"
-    Value: !GetAtt SubmitImageFunction.Arn
-  SubmitImageFunctionIamRole:
-    Description: "Implicit IAM Role created for Submit Image function"
-    Value: !GetAtt SubmitImageFunctionRole.Arn
-  SubmitImageFunctionName:
-    Description: "SubmitImage function name"
-    Value: !Ref SubmitImageFunction
+  ApiGatewayEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
     Export:
-      Name: SubmitImageFunctionName
+      Name: !Sub "${AWS::StackName}-ApiEndpoint"
+
+  MobileUserRegistrationFunction:
+    Description: "Mobile User Registration Lambda Function ARN"
+    Value: !GetAtt MobileUserRegistrationFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-FunctionArn"
+
+  UsersTable:
+    Description: "Users DynamoDB Table Name"
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub "${AWS::StackName}-UsersTable"
+
+  ActivityLogsTable:
+    Description: "Activity Logs DynamoDB Table Name"
+    Value: !Ref ActivityLogsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-ActivityLogsTable"
+
+  ImagesBucket:
+    Description: "Images S3 Bucket Name"
+    Value: !Ref ImagesBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-ImagesBucket"

@@ -1,0 +1,93 @@
+# Environment configuration for MFIRST Mobile User Registration
+
+# Development Environment
+development:
+  ENVIRONMENT: "development"
+  
+  # Database Configuration
+  USERS_TABLE: "Users-dev"
+  ACTIVITY_LOGS_TABLE: "ActivityLogs-dev"
+  
+  # Email Configuration (Mock in development)
+  SMTP_HOST: "localhost"
+  SMTP_PORT: "587"
+  SMTP_USERNAME: ""
+  SMTP_PASSWORD: ""
+  SMTP_FROM: "noreply@mfirst-dev.com"
+  
+  # CAPTCHA Configuration (Disabled in development)
+  CAPTCHA_ENABLED: "false"
+  RECAPTCHA_SECRET_KEY: ""
+  RECAPTCHA_SITE_KEY: ""
+  
+  # Security Configuration
+  JWT_SECRET: "dev-secret-key-change-in-production"
+  PASSWORD_RESET_URL: "https://dev.mfirst.com/reset-password"
+  EMAIL_VERIFICATION_URL: "https://dev.mfirst.com/verify-email"
+  
+  # Logging
+  LOG_LEVEL: "debug"
+
+# Staging Environment
+staging:
+  ENVIRONMENT: "staging"
+  
+  # Database Configuration
+  USERS_TABLE: "Users-staging"
+  ACTIVITY_LOGS_TABLE: "ActivityLogs-staging"
+  
+  # Email Configuration
+  SMTP_HOST: "smtp.sendgrid.net"
+  SMTP_PORT: "587"
+  SMTP_USERNAME: "${SENDGRID_USERNAME}"
+  SMTP_PASSWORD: "${SENDGRID_PASSWORD}"
+  SMTP_FROM: "noreply@mfirst-staging.com"
+  
+  # CAPTCHA Configuration
+  CAPTCHA_ENABLED: "true"
+  RECAPTCHA_SECRET_KEY: "${RECAPTCHA_SECRET_KEY_STAGING}"
+  RECAPTCHA_SITE_KEY: "${RECAPTCHA_SITE_KEY_STAGING}"
+  
+  # Security Configuration
+  JWT_SECRET: "${JWT_SECRET_STAGING}"
+  PASSWORD_RESET_URL: "https://staging.mfirst.com/reset-password"
+  EMAIL_VERIFICATION_URL: "https://staging.mfirst.com/verify-email"
+  
+  # Logging
+  LOG_LEVEL: "info"
+
+# Production Environment
+production:
+  ENVIRONMENT: "production"
+  
+  # Database Configuration
+  USERS_TABLE: "Users-prod"
+  ACTIVITY_LOGS_TABLE: "ActivityLogs-prod"
+  
+  # Email Configuration
+  SMTP_HOST: "smtp.sendgrid.net"
+  SMTP_PORT: "587"
+  SMTP_USERNAME: "${SENDGRID_USERNAME}"
+  SMTP_PASSWORD: "${SENDGRID_PASSWORD}"
+  SMTP_FROM: "noreply@mfirst.com"
+  
+  # CAPTCHA Configuration
+  CAPTCHA_ENABLED: "true"
+  RECAPTCHA_SECRET_KEY: "${RECAPTCHA_SECRET_KEY_PROD}"
+  RECAPTCHA_SITE_KEY: "${RECAPTCHA_SITE_KEY_PROD}"
+  
+  # Security Configuration
+  JWT_SECRET: "${JWT_SECRET_PROD}"
+  PASSWORD_RESET_URL: "https://app.mfirst.com/reset-password"
+  EMAIL_VERIFICATION_URL: "https://app.mfirst.com/verify-email"
+  
+  # Rate Limiting
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS_PER_MINUTE: "10"
+  
+  # Monitoring
+  LOG_LEVEL: "warn"
+  ENABLE_METRICS: "true"
+  
+  # Security Headers
+  ENABLE_SECURITY_HEADERS: "true"

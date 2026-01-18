@@ -1,125 +1,397 @@
 openapi: "3.0.0"
 info:
   version: 1.0.0
-  title: Swagger Petstore
+  title: Mobile User Registration API
+  description: API for mobile user registration and authentication
   license:
     name: MIT
 servers:
-  - url: http://petstore.swagger.io/v1
+  - url: https://api.mfirst.com/v1
 paths:
-  /pets:
-    get:
-      summary: List all pets
-      operationId: listAllPets
-      tags:
-        - pets
-      parameters:
-        - name: limit
-          in: query
-          description: How many items to return at one time (max 100)
-          required: false
-          schema:
-            type: integer
-            maximum: 100
-            format: int32
-      responses:
-        '200':
-          description: A paged array of pets
-          headers:
-            x-next:
-              description: A link to the next page of responses
-              schema:
-                type: string
-          content:
-            application/json:    
-              schema:
-                $ref: "#/components/schemas/Pets"
-        default:
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+  /auth/register:
     post:
-      summary: Create a pet
-      operationId: createPets
+      summary: Register a new mobile user
+      description: Register a new user account with mobile-specific fields and email verification
+      operationId: registerUser
       tags:
-        - pets
+        - auth
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Pet'
-        required: true
+              $ref: "#/components/schemas/UserRegistration"
       responses:
         '201':
-          description: Null response
-        default:
-          description: unexpected error
+          description: User registered successfully. Verification email sent.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-  /pets/{petId}:
-    get:
-      summary: Info for a specific pet
-      operationId: showPetById
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Registration successful. Please check your email for verification."
+                  userId:
+                    type: string
+                    example: "user-123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid input or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '409':
+          description: Email or username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/verify-email:
+    post:
+      summary: Verify email address
+      description: Verify user's email address using the token sent via email
+      operationId: verifyEmail
       tags:
-        - pets
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          description: The id of the pet to retrieve
-          schema:
-            type: string
-        - name: petAlias
-          in: path
-          required: false
-          description: The alias of the pet to retrieve
-          schema:
-            type: string
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerification"
       responses:
         '200':
-          description: Expected response to a valid request
+          description: Email verified successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
-        default:
-          description: unexpected error
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email verified successfully. You can now log in."
+        '400':
+          description: Invalid or expired token
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/forgot-password:
+    post:
+      summary: Request password reset
+      description: Request a password reset link to be sent to user's email
+      operationId: forgotPassword
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordReset"
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "If your email is registered, you will receive password reset instructions."
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/reset-password:
+    post:
+      summary: Reset password
+      description: Reset password using the token received via email
+      operationId: resetPassword
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordUpdate"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password has been reset successfully."
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /user/profile:
+    get:
+      summary: Get user profile
+      description: Get the authenticated user's profile information
+      operationId: getUserProfile
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update user profile
+      description: Update the authenticated user's profile information
+      operationId: updateUserProfile
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profile updated successfully."
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
-    Pet:
+    UserRegistration:
       type: object
       required:
-        - id
-        - name
+        - email
+        - password
+        - firstName
+        - lastName
+        - deviceId
+        - deviceType
+        - deviceToken
+        - appVersion
+        - captchaToken
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+          description: "User's email address"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "StrongP@ss123"
+          description: "Must contain at least 8 characters, one uppercase, one lowercase, one number and one special character"
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "John"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          example: "Doe"
+        phone:
+          type: string
+          pattern: "^\\+?[1-9]\\d{1,14}$"
+          example: "+12345678901"
+          description: "Phone number in international format"
+        deviceId:
+          type: string
+          example: "device-123e4567-e89b-12d3-a456-426614174000"
+          description: "Unique device identifier"
+        deviceType:
+          type: string
+          enum: ["ios", "android"]
+          example: "ios"
+          description: "Mobile device type"
+        deviceToken:
+          type: string
+          example: "fcm-token-123456789"
+          description: "Device token for push notifications"
+        appVersion:
+          type: string
+          pattern: "^\\d+\\.\\d+\\.\\d+$"
+          example: "1.0.0"
+          description: "Mobile app version"
+        captchaToken:
+          type: string
+          example: "captcha-token-123456789"
+          description: "CAPTCHA verification token"
+    
+    UserProfile:
+      type: object
       properties:
         id:
-          type: integer
-          format: int64
-        name:
           type: string
-        tag:
+          example: "user-123e4567-e89b-12d3-a456-426614174000"
+        email:
           type: string
-    Pets:
-      type: array
-      maxItems: 100
-      items:
-        $ref: "#/components/schemas/Pet"
-    Error:
+          format: email
+          example: "user@example.com"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        phone:
+          type: string
+          example: "+12345678901"
+        emailVerified:
+          type: boolean
+          example: true
+        phoneVerified:
+          type: boolean
+          example: false
+        status:
+          type: string
+          enum: ["PENDING", "ACTIVE", "SUSPENDED", "DELETED"]
+          example: "ACTIVE"
+        deviceType:
+          type: string
+          example: "ios"
+        appVersion:
+          type: string
+          example: "1.0.0"
+        lastLoginAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T10:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-11-01T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-12-01T10:30:00Z"
+    
+    UserProfileUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          pattern: "^\\+?[1-9]\\d{1,14}$"
+        deviceToken:
+          type: string
+          description: "Updated device token for push notifications"
+    
+    EmailVerification:
       type: object
       required:
-        - code
+        - token
+      properties:
+        token:
+          type: string
+          example: "verification-token-123456789"
+          description: "Email verification token received via email"
+    
+    PasswordReset:
+      type: object
+      required:
+        - email
+        - captchaToken
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        captchaToken:
+          type: string
+          example: "captcha-token-123456789"
+          description: "CAPTCHA verification token"
+    
+    PasswordUpdate:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          example: "reset-token-123456789"
+          description: "Password reset token received via email"
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          example: "NewStrongP@ss123"
+          description: "New password meeting strength requirements"
+    
+    ErrorResponse:
+      type: object
+      required:
+        - error
         - message
       properties:
-        code:
-          type: integer
-          format: int32
+        error:
+          type: string
+          example: "VALIDATION_ERROR"
+          description: "Error code"
         message:
           type: string
+          example: "Invalid email format"
+          description: "Human-readable error message"
+        details:
+          type: array
+          items:
+            type: string
+          example: ["Password must contain at least one uppercase letter"]
+          description: "Additional error details"
+  
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT token for authenticated requests"
