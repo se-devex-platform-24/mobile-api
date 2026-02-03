@@ -29,9 +29,10 @@ const (
 )
 
 type Dependency struct {
-	DepS3       s3iface.S3API
-	DepDynamoDB dynamodbiface.DynamoDBAPI
-	httpClient  *http.Client
+	DepS3        s3iface.S3API
+	DepDynamoDB  dynamodbiface.DynamoDBAPI
+	httpClient   *http.Client
+	AuthHandlers interface{} // Will be *auth.AuthHandlers but avoiding import cycle
 }
 
 // NewDependency creates a new Dependency with optimized clients
@@ -204,6 +205,28 @@ func isValidExtension(urlVal string) bool {
 }
 
 func (d *Dependency) Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Check if this is an authentication request
+	if strings.HasPrefix(request.Path, "/auth/") {
+		if d.AuthHandlers != nil {
+			// Use type assertion to call the auth handler
+			if authHandlers, ok := d.AuthHandlers.(interface {
+				RouteRequest(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)
+			}); ok {
+				return authHandlers.RouteRequest(ctx, request)
+			}
+		}
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusNotFound,
+			Body: `{"error":"authentication service not available"}`,
+			IsBase64Encoded: false,
+		}, nil
+	}
+
+	// Handle image submission (existing functionality)
+	return d.handleImageSubmission(ctx, request)
+}
+
+func (d *Dependency) handleImageSubmission(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(ctx, MaxTimeout)
 	defer cancel()
